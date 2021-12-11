@@ -38,10 +38,18 @@
     width: 36px;
 }
 
+.token_icon {
+    width: 36px;
+}
+
 .modal-body {
     height: 600px;
     overflow: scroll;
 }
 .token_row {
     padding: 10px 0 0 0;
+}
+.token_row:hover {
+    background-color: #e4e4e3;
+    cursor: pointer;
 }
