@@ -1,6 +1,229 @@
 /* Moralis init code */
 const serverUrl = "https://wh8r5pj5zptv.usemoralis.com:2053/server";
 const appId = "LksPhCNEF1OGwW5OhMVamzE21bRnnyRYqZiid39m";
+const erc20Abi = [
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "name",
+        "outputs": [
+            {
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_spender",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "approve",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address"
+            },
+            {
+                "name": "_to",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "transferFrom",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "address"
+            }
+        ],
+        "name": "balanceOf",
+        "outputs": [
+            {
+                "name": "balance",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [
+            {
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "transfer",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "address"
+            },
+            {
+                "name": "_spender",
+                "type": "address"
+            }
+        ],
+        "name": "allowance",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "fallback"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Approval",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Transfer",
+        "type": "event"
+    }
+];
+
 Moralis.start({ serverUrl, appId });
 
 let tokenSelection;
@@ -11,14 +234,14 @@ let tradingPair = {
     "to": { "address": null }
 }
 
+
 /* Authentication code */
 async function login() {
     let user = Moralis.User.current();
     if (!user) {
     user = await Moralis.authenticate({ signingMessage: "Log in to QuickSwap Testnet" })
       .then(function (user) {
-        console.log("logged in user:", user);
-        console.log(user.get("ethAddress"));
+        document.getElementById("btn-login").innerHTML = Moralis.User.current().get("ethAddress");
       })
       .catch(function (error) {
         console(error);
@@ -34,7 +257,7 @@ async function init() {
 
 async function listAvailableTokens() {
     const result = await Moralis.Plugins.oneInch.getSupportedTokens({
-        chain: "polygon" // bsc
+        chain: "mumbai" // bsc
     });
 
     const tokenList = document.getElementById("token_list");
@@ -58,10 +281,24 @@ async function selectToken(address) {
     closeModal();
     if (tokenSelection == 'from') {
         tradingPair.from.address = address;
+        let options = { chain: "mumbai", addresses: Moralis.User.current() }
+        // const tokenMetadata = await Moralis.Web3API.token.getTokenMetadata(options);
+        // console.log(tokenMetadata);
+        const balances = await Moralis.Web3.getAllERC20(options);
+        console.log('balances:');
+        console.log(balances);
+
+        const web3 = await Moralis.enableWeb3();
+        // const web3 = new Web3(web3.current);
+        console.log('address', address);
+        const contract = new web3.eth.Contract(abi, address);
+        // let decimals = await contract.methods.decimals().call();
+        // let balance = await contract.methods.balanceOf(Moralis.User.current().get("ethAddress")).call();
+
+        console.log(decimals);
     } else {
         tradingPair.to.address = address;
     }
-
     updateUI();
 }
 
@@ -75,7 +312,6 @@ function updateUI() {
         document.getElementById("to_token_icon").src = tokens[tradingPair.to.address].logoURI;
         document.getElementById("to_token_text").innerHTML = tokens[tradingPair.to.address].symbol;
     }
-
 }
 
 async function logOut() {
@@ -95,7 +331,7 @@ function closeModal() {
 async function getQuote() {
     let amount = Number(Moralis.Units.ETH(document.getElementById('from_token_amount').value));
     const quote = await Moralis.Plugins.oneInch.quote({
-        chain: 'polygon',
+        chain: 'mumbai',
         fromTokenAddress: tradingPair.from.address,
         toTokenAddress: tradingPair.to.address,
         amount: amount
@@ -111,5 +347,9 @@ $(document).ready(() => {
     document.getElementById("btn-login").onclick = login;
     document.getElementById("from_token_amount").onblur = getQuote;
     document.getElementById("to_token_amount").onblur = getQuote;
+
+    if (Moralis.User.current()) {
+        document.getElementById("btn-login").innerHTML = Moralis.User.current().get("ethAddress");
+    }
     // document.getElementById("btn-logout").onclick = logOut;
 })
