@@ -256,14 +256,22 @@ async function init() {
 }
 
 async function listAvailableTokens() {
-    const result = await Moralis.Plugins.oneInch.getSupportedTokens({
-        chain: "mumbai" // bsc
-    });
-
     const tokenList = document.getElementById("token_list");
-    tokens = result.tokens;
+    tokens = {
+        '0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39': {
+            'symbol': 'LINK',
+            'address': '0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39',
+            'logoURI': 'https://tokens.1inch.io/0x514910771af9ca656af840dff83e8264ecf986ca.png'
+        },
+        '0x0fa8074acf7bbc635a44e0f22c3db7ffd3d8e39f': {
+            'symbol': 'MEME',
+            'address': '0x0fa8074acf7bbc635a44e0f22c3db7ffd3d8e39f',
+            'logoURI': 'https://tokens.1inch.io/0x17ac188e09a7890a1844e5e65471fe8b0ccfadf3.png'
+        }
+    }
+
     for (const address in tokens) {
-        let token = result.tokens[address];
+        let token = tokens[address];
         let div = document.createElement("div");
 
         div.className = "token_row";
@@ -272,7 +280,7 @@ async function listAvailableTokens() {
             <span class="token_list_text">${token.symbol}</span>
         `
         div.innerHTML = html;
-        div.onclick = (() => { selectToken(address); });
+        div.onclick = (() => { selectToken(token.address); });
         tokenList.appendChild(div);
     }
 }
@@ -281,7 +289,7 @@ async function selectToken(address) {
     closeModal();
     if (tokenSelection == 'from') {
         tradingPair.from.address = address;
-        let options = { chain: "mumbai", addresses: Moralis.User.current() }
+        let options = { chain: "polygon", addresses: Moralis.User.current() }
         // const tokenMetadata = await Moralis.Web3API.token.getTokenMetadata(options);
         // console.log(tokenMetadata);
         const balances = await Moralis.Web3.getAllERC20(options);
@@ -291,11 +299,11 @@ async function selectToken(address) {
         const web3 = await Moralis.enableWeb3();
         // const web3 = new Web3(web3.current);
         console.log('address', address);
-        const contract = new web3.eth.Contract(abi, address);
+        // const contract = new web3.eth.Contract(abi, address);
         // let decimals = await contract.methods.decimals().call();
         // let balance = await contract.methods.balanceOf(Moralis.User.current().get("ethAddress")).call();
 
-        console.log(decimals);
+        // console.log(decimals);
     } else {
         tradingPair.to.address = address;
     }
@@ -331,7 +339,7 @@ function closeModal() {
 async function getQuote() {
     let amount = Number(Moralis.Units.ETH(document.getElementById('from_token_amount').value));
     const quote = await Moralis.Plugins.oneInch.quote({
-        chain: 'mumbai',
+        chain: 'polygon',
         fromTokenAddress: tradingPair.from.address,
         toTokenAddress: tradingPair.to.address,
         amount: amount
