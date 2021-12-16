@@ -54,6 +54,37 @@
             </div>
           </div>
       </div>
+      <div class="row">
+          <div class="swap_container col col-md-6 offset-md-3">
+            <h4>Add Liquidity<h4>
+            <div id="form">
+              <div class="swapbox">
+                <div class="swapbox_select_token token_select" id="liquidity_from_token_select">
+                  <img class="token_icon" id="liquidity_from_token_icon">
+                  <span id="liquidity_from_token_text">Select token</span>
+                </div>
+                <div class="swapbox_select_amount">
+                  <input type="input" class="number form-control" placeholder="amount" name="from_token" id="liquidity_from_token_amount">
+                </div>
+              </div>
+              <div class="swapbox">
+                <div class="swapbox_select_token token_select" id="liquidity_to_token_select">
+                  <img class="token_icon" id="liquidity_to_token_icon">
+                  <span id="liquidity_to_token_text">Select token</span>
+                </div>
+                <div class="swapbox_select_amount">
+                  <input type="input" class="number form-control" placeholder="amount" name="to_token" id="liquidity_to_token_amount">
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-dark" id="approve_token">
+                <span aria-hidden="true">Approve</span>
+            </button>
+            <button type="button" class="btn btn-dark" id="submit_add_liquidity">
+                <span aria-hidden="true">Submit</span>
+            </button>
+          </div>
+      </div>
     </div>
     <div class="modal" id="token_modal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">

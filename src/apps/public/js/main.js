@@ -229,7 +229,12 @@ Moralis.start({ serverUrl, appId });
 let tokenSelection;
 let tokens;
 
-let tradingPair = {
+let swapPair = {
+    "from": { "address": null },
+    "to": { "address": null }
+}
+
+let liquidityPair = {
     "from": { "address": null },
     "to": { "address": null }
 }
@@ -258,9 +263,9 @@ async function init() {
 async function listAvailableTokens() {
     const tokenList = document.getElementById("token_list");
     tokens = {
-        '0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39': {
+        '0x326C977E6efc84E512bB9C30f76E30c160eD06FB': {
             'symbol': 'LINK',
-            'address': '0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39',
+            'address': '0x326C977E6efc84E512bB9C30f76E30c160eD06FB',
             'logoURI': 'https://tokens.1inch.io/0x514910771af9ca656af840dff83e8264ecf986ca.png'
         },
         '0x0fa8074acf7bbc635a44e0f22c3db7ffd3d8e39f': {
@@ -287,39 +292,48 @@ async function listAvailableTokens() {
 
 async function selectToken(address) {
     closeModal();
+
+    mumbaiRpc = 'https://rpc-mumbai.maticvigil.com/';
+    const provider = new Web3.providers.HttpProvider(mumbaiRpc);
+    const web3 = new Web3(provider);
+
+    const contract = new web3.eth.Contract(erc20Abi, address);
+    let decimals = await contract.methods.decimals().call();
+    let balance = await contract.methods.balanceOf(Moralis.User.current().get("ethAddress")).call();
     if (tokenSelection == 'from') {
-        tradingPair.from.address = address;
-        let options = { chain: "polygon", addresses: Moralis.User.current() }
-        // const tokenMetadata = await Moralis.Web3API.token.getTokenMetadata(options);
-        // console.log(tokenMetadata);
-        const balances = await Moralis.Web3.getAllERC20(options);
-        console.log('balances:');
-        console.log(balances);
-
-        const web3 = await Moralis.enableWeb3();
-        // const web3 = new Web3(web3.current);
-        console.log('address', address);
-        // const contract = new web3.eth.Contract(abi, address);
-        // let decimals = await contract.methods.decimals().call();
-        // let balance = await contract.methods.balanceOf(Moralis.User.current().get("ethAddress")).call();
-
-        // console.log(decimals);
+        swapPair.from.address = address;
+    } else if (tokenSelection == 'to') {
+        swapPair.to.address = address;
+    } else if (tokenSelection == 'liquidity_from') {
+        liquidityPair.from.address = address;
     } else {
-        tradingPair.to.address = address;
+        liquidityPair.to.address = address;
     }
     updateUI();
 }
 
 function updateUI() {
-    if (!!tradingPair.from.address) {
-        document.getElementById("from_token_icon").src = tokens[tradingPair.from.address].logoURI;
-        document.getElementById("from_token_text").innerHTML = tokens[tradingPair.from.address].symbol;
+    if (!!swapPair.from.address) {
+        document.getElementById("from_token_icon").src = tokens[swapPair.from.address].logoURI;
+        document.getElementById("from_token_text").innerHTML = tokens[swapPair.from.address].symbol;
     }
 
-    if (!!tradingPair.to.address) {
-        document.getElementById("to_token_icon").src = tokens[tradingPair.to.address].logoURI;
-        document.getElementById("to_token_text").innerHTML = tokens[tradingPair.to.address].symbol;
+    if (!!swapPair.to.address) {
+        document.getElementById("to_token_icon").src = tokens[swapPair.to.address].logoURI;
+        document.getElementById("to_token_text").innerHTML = tokens[swapPair.to.address].symbol;
     }
+
+    if (!!liquidityPair.from.address) {
+        document.getElementById("liquidity_from_token_icon").src = tokens[liquidityPair.from.address].logoURI;
+        document.getElementById("liquidity_from_token_text").innerHTML = tokens[liquidityPair.from.address].symbol;
+    }
+
+    if (!!liquidityPair.to.address) {
+        document.getElementById("liquidity_to_token_icon").src = tokens[liquidityPair.to.address].logoURI;
+        document.getElementById("liquidity_to_token_text").innerHTML = tokens[liquidityPair.to.address].symbol;
+    }
+
+
 }
 
 async function logOut() {
@@ -339,9 +353,9 @@ function closeModal() {
 async function getQuote() {
     let amount = Number(Moralis.Units.ETH(document.getElementById('from_token_amount').value));
     const quote = await Moralis.Plugins.oneInch.quote({
-        chain: 'polygon',
-        fromTokenAddress: tradingPair.from.address,
-        toTokenAddress: tradingPair.to.address,
+        chain: 'mumbai',
+        fromTokenAddress: swapPair.from.address,
+        toTokenAddress: swapPair.to.address,
         amount: amount
     });
     document.getElementById("to_token_amount").value = quote.toTokenAmount / 10 ** quote.toToken.decimals;
@@ -351,6 +365,10 @@ $(document).ready(() => {
     init();
     document.getElementById("from_token_select").onclick = (() => { openModal('from'); });
     document.getElementById("to_token_select").onclick = (() => { openModal('to'); });
+
+    document.getElementById("liquidity_from_token_select").onclick = (() => { openModal('liquidity_from'); });
+    document.getElementById("liquidity_to_token_select").onclick = (() => { openModal('liquidity_to'); });
+
     document.getElementById("model_close_btn").onclick = closeModal;
     document.getElementById("btn-login").onclick = login;
     document.getElementById("from_token_amount").onblur = getQuote;
