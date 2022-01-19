@@ -1,8 +1,8 @@
 /* Moralis init code */
 const serverUrl = "https://wh8r5pj5zptv.usemoralis.com:2053/server";
 const appId = "LksPhCNEF1OGwW5OhMVamzE21bRnnyRYqZiid39m";
-const mumbaiQuickSwapFactoryContract = '0x572b45382706345b7A91F4cFC2d224f1d4203F79';
-const mumbaiQuickSwapRouterContract = '0xcEF8ed2ED9FBF122005786321fbba9eDb37b4A55';
+const mumbaiQuickSwapFactoryContract = '0x260A7A7cbA441ff9a8141Cbf684CFee54B05C3D6';
+const mumbaiQuickSwapRouterContract = '0x4Bc51fC076A3044Af710227eA94A17AE5CcB8FdF';
 const routerAbi = [
     {
       "inputs": [
@@ -1042,9 +1042,9 @@ async function listAvailableTokens() {
             'logoURI': 'https://tokens.1inch.io/0x514910771af9ca656af840dff83e8264ecf986ca.png',
             'decimals': 18,
         },
-        '0x1D4AA19a45ABdE633C7291aC7754e2c052C75005': {
+        '0xf45b409a2b978ec02Bb6084e6Acc42867a78Ee9c': {
             'symbol': 'VIK',
-            'address': '0x1D4AA19a45ABdE633C7291aC7754e2c052C75005',
+            'address': '0xf45b409a2b978ec02Bb6084e6Acc42867a78Ee9c',
             'logoURI': 'https://tokens.1inch.io/0x17ac188e09a7890a1844e5e65471fe8b0ccfadf3.png',
             'decimals': 18
         }
@@ -1182,7 +1182,8 @@ $(document).ready(() => {
         const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
         const account = accounts[0];
         console.log('account: ', account);
-        await contract.methods.approve(mumbaiQuickSwapRouterContract, '10000000000000000000').send({ from: account });
+        
+        await contract.methods.approve(mumbaiQuickSwapRouterContract, web3.utils.toWei('10000000000000000000', 'ether')).send({ from: account });
         // contract.methods.approve(mumbaiQuickSwapRouterContract, '10000000000000000000000').send({'from': owner}, function(error, result) {
         //     console.log('called');
         //     console.log(error);
@@ -1196,43 +1197,12 @@ $(document).ready(() => {
         const router = new web3.eth.Contract(routerAbi, mumbaiQuickSwapRouterContract);
         const dataOption = {
             from: owner,
-            gasPrice: gasPrice, 
-            gasLimit: 310000000, 
-            value: web3.utils.toWei('0.1') 
+            value: web3.utils.toWei('0.1')
         }
-        // {
-        //     "internalType": "address",
-        //     "name": "token",
-        //     "type": "address"
-        //   },
-        //   {
-        //     "internalType": "uint256",
-        //     "name": "amountTokenDesired",
-        //     "type": "uint256"
-        //   },
-        //   {
-        //     "internalType": "uint256",
-        //     "name": "amountTokenMin",
-        //     "type": "uint256"
-        //   },
-        //   {
-        //     "internalType": "uint256",
-        //     "name": "amountETHMin",
-        //     "type": "uint256"
-        //   },
-        //   {
-        //     "internalType": "address",
-        //     "name": "to",
-        //     "type": "address"
-        //   },
-        //   {
-        //     "internalType": "uint256",
-        //     "name": "deadline",
-        //     "type": "uint256"
-        //   }
+        new web3.utils.BN()
         console.log(owner);
         const deadline = web3.utils.toHex(Math.round(Date.now()/1000)+60*20);
-        await router.methods.addLiquidityETH('0x1D4AA19a45ABdE633C7291aC7754e2c052C75005', '100000000000000000000000', '10', '1', owner, deadline).send(dataOption);
+        await router.methods.addLiquidityETH('0xf45b409a2b978ec02Bb6084e6Acc42867a78Ee9c', '100000000000000000000000', '10', '1', owner, deadline).send(dataOption);
         // await router.methods.addLiquidityETH(mumbaiQuickSwapRouterContract, '10000000000000000000').send({ from: account });
     });
 
@@ -1254,3 +1224,4 @@ Access to XMLHttpRequest at 'https://wh8r5pj5zptv.usemoralis.com:2053/server/fun
     // }
     // document.getElementById("btn-logout").onclick = logOut;
 })
+// "[ethjs-query] while formatting outputs from RPC '{"value":{"code":-32603,"data":{"code":-32000,"message":"exceeds block gas limit"}}}'"
