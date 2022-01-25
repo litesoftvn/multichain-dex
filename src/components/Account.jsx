@@ -23,10 +23,19 @@ const styles = {
   },
 };
 
-function Account() {
-  const { authenticate, isAuthenticated, logout, account, chainId } = useMoralis();
-  const [isModalVisible, setIsModalVisible] = useState(false);
+function authenticate(data) {
+  const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+  const account = accounts[0];
+}
 
+function logout() {
+
+}
+
+function Account() {
+  // const { authenticate, isAuthenticated, logout, account, chainId } = useMoralis();
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  
   if (!isAuthenticated) {
     return (
       <div style={styles.account} onClick={() => authenticate({ signingMessage: "Hello World!" })}>
