@@ -6,6 +6,7 @@ let tokenSelection;
 let contract = null;
 let owner = null;
 let web3 = null;
+const storage = window.localStorage;
 
 import {erc20Abi} from '../abis/erc20Abi.js';
 import {routerAbi} from '../abis/routerAbi.js';
@@ -36,18 +37,23 @@ const tokens = {
 }
 
 function getListTokens() {
+  const tokenString = storage.getItem("tokens");
+  if (tokenString) {
+    return JSON.parse(tokenString);
+  }
   return tokens;
 }
 
-function addCustomToken(address, symbol, logoURI, decimals) {
+function addCustomToken(address, symbol, decimals, logoURI) {
   let customTokenData = {
     'symbol': symbol,
     'address': address,
-    'logoURI': logoURI,
+    'logoURI': 'https://tokens.1inch.io/0x17ac188e09a7890a1844e5e65471fe8b0ccfadf3.png',
     'decimals': decimals
   }
-  const token = {};
-  token[address] = customTokenData;
+  tokens[address] = customTokenData;
+  storage.setItem("tokens", JSON.stringify(tokens));
+  updateListAvailableTokens(getListTokens());
 }
 
 /* Authentication code */
@@ -62,15 +68,19 @@ async function login() {
 }
 
 async function init() {
-    await listAvailableTokens();    
+    await updateListAvailableTokens(getListTokens());    
     web3 = new Web3(window.ethereum);
     await window.ethereum.enable();
     console.log(web3);
 }
 
-async function listAvailableTokens() {
+async function updateListAvailableTokens(tokens) {
     const tokenList = document.getElementById("token_list");
-
+    if (tokenList == null) { return; }
+    
+    while (tokenList.lastChild) {
+      tokenList.removeChild(tokenList.lastChild);
+    }
     for (const address in tokens) {
         let token = tokens[address];
         let div = document.createElement("div");
@@ -89,11 +99,10 @@ async function listAvailableTokens() {
 async function selectToken(address) {
     closeModal();
 
-    contract = new web3.eth.Contract(erc20Abi, address);
-    console.log(address);
-    let decimals = await contract.methods.decimals().call();
-    let balance = await contract.methods.balanceOf(owner).call();    
-    let readableBalance = balance / 10 ** decimals;
+    const contract = new web3.eth.Contract(erc20Abi, address);
+    const decimals = await contract.methods.decimals().call();
+    const balance = await contract.methods.balanceOf(owner).call();    
+    const readableBalance = balance / 10 ** decimals;
 
     if (tokenSelection == 'from') {
         swapPair.from.address = address;
@@ -140,7 +149,7 @@ function updateUI() {
 }
 
 function updateApprovalButtonForAddLiquidity() {
-    approvalBtn = $('#liquidity_approve_token');
+    const approvalBtn = $('#liquidity_approve_token');
     if (liquidityPair.from.balance > 0 && liquidityPair.from.balance > liquidityPair.from.allowance) {
         approvalBtn.text('Approve ' + tokens[liquidityPair.from.address].symbol);
         approvalBtn.data('address', liquidityPair.from.address);
@@ -150,10 +159,6 @@ function updateApprovalButtonForAddLiquidity() {
         approvalBtn.data('address', liquidityPair.to.address);
         approvalBtn.show();
     }
-}
-
-async function logOut() {
-  console.log("logged out");
 }
 
 function openModal(selection) {
@@ -176,6 +181,21 @@ async function getQuote() {
     // document.getElementById("to_token_amount").value = quote.toTokenAmount / 10 ** quote.toToken.decimals;
 }
 
+async function processCustomToken() {
+  const add = $("#custom_token_address").val();
+  if (add == "") { return; }
+  if (!tokens[add] && web3 != null) {
+    contract = new web3.eth.Contract(erc20Abi, add);
+    const decimals = await contract.methods.decimals().call();
+    const symbol = await contract.methods.symbol().call();
+    addCustomToken(add, symbol, decimals, '');
+    $("#custom_token_address").val("");
+    // const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+    // const account = accounts[0];
+    
+    // await contract.methods.approve(mumbaiQuickSwapRouterContract, web3.utils.toWei('10000000000000000000', 'ether')).send({ from: owner });
+  }
+}
 
 $(document).ready(() => {
     init();
@@ -190,15 +210,8 @@ $(document).ready(() => {
         console.log(owner);
         const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
         const account = accounts[0];
-        console.log('account: ', account);
         
         await contract.methods.approve(mumbaiQuickSwapRouterContract, web3.utils.toWei('10000000000000000000', 'ether')).send({ from: account });
-        // contract.methods.approve(mumbaiQuickSwapRouterContract, '10000000000000000000000').send({'from': owner}, function(error, result) {
-        //     console.log('called');
-        //     console.log(error);
-        //     console.log(result);
-        // });
-        // let transfer = await contract.methods.transfer('0x9C304dE062A0C7bc88822B31b43810027Cab6975', web3.utils.toWei(new web3.utils.BN(1), 'ether')).call();
         $('#liquidity_approve_token').hide();
     });
     document.getElementById("submit_add_liquidity").onclick = (async () => {
@@ -222,6 +235,7 @@ $(document).ready(() => {
     document.getElementById("btn-login").onclick = login;
     document.getElementById("from_token_amount").onblur = getQuote;
     document.getElementById("to_token_amount").onblur = getQuote;
+    document.getElementById("custom_token_address").onblur = processCustomToken;
 
     login();
 })
