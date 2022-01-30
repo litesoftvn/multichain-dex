@@ -1,6 +1,5 @@
 import { useMoralis } from "react-moralis";
 import { getEllipsisTxt } from "helpers/formatters";
-import Blockie from "./Blockie";
 import { Button, Card, Modal } from "antd";
 import { useState } from "react";
 import Address from "./Address/Address";
@@ -24,8 +23,12 @@ const styles = {
 };
 
 function authenticate(data) {
-  const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-  const account = accounts[0];
+  window.ethereum.request({ method: 'eth_requestAccounts' }).then((res, err) => {
+    console.log('authenticated');
+    // console.log(res)
+    // console.log(err);
+    // const account = accounts[0];
+  });
 }
 
 function logout() {
@@ -36,19 +39,18 @@ function Account() {
   // const { authenticate, isAuthenticated, logout, account, chainId } = useMoralis();
   const [isModalVisible, setIsModalVisible] = useState(false);
   
-  if (!isAuthenticated) {
-    return (
-      <div style={styles.account} onClick={() => authenticate({ signingMessage: "Hello World!" })}>
-        <p style={styles.text}>Authenticate</p>
-      </div>
-    );
-  }
+  // if (!isAuthenticated) {
+  //   return (
+  //     <div style={styles.account} onClick={() => authenticate({ signingMessage: "Hello World!" })}>
+  //       <p style={styles.text}>Authenticate</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
       <div style={styles.account} onClick={() => setIsModalVisible(true)}>
-        <p style={{ marginRight: "5px", ...styles.text }}>{getEllipsisTxt(account, 6)}</p>
-        <Blockie currentWallet scale={3} />
+        {/* <p style={{ marginRight: "5px", ...styles.text }}>{getEllipsisTxt(account, 6)}</p> */}
       </div>
       <Modal
         visible={isModalVisible}
@@ -72,10 +74,10 @@ function Account() {
         >
           <Address avatar="left" size={6} copyable style={{ fontSize: "20px" }} />
           <div style={{ marginTop: "10px", padding: "0 10px" }}>
-            <a href={`${getExplorer(chainId)}/address/${account}`} target="_blank" rel="noreferrer">
+            {/* <a href={`${getExplorer(chainId)}/address/${account}`} target="_blank" rel="noreferrer">
               <SelectOutlined style={{ marginRight: "5px" }} />
               View on Explorer
-            </a>
+            </a> */}
           </div>
         </Card>
         <Button
