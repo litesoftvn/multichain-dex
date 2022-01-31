@@ -21,7 +21,7 @@ let liquidityPair = {
     "to": { "address": null, "balance": 0, "decimals": 0, "allowance": 0 }
 }
 
-const tokens = {
+let tokens = {
   '0x326C977E6efc84E512bB9C30f76E30c160eD06FB': {
       'symbol': 'LINK',
       'address': '0x326C977E6efc84E512bB9C30f76E30c160eD06FB',
@@ -39,7 +39,7 @@ const tokens = {
 function getListTokens() {
   const tokenString = storage.getItem("tokens");
   if (tokenString) {
-    return JSON.parse(tokenString);
+    tokens = JSON.parse(tokenString);
   }
   return tokens;
 }
@@ -101,21 +101,26 @@ async function selectToken(address) {
 
     const contract = new web3.eth.Contract(erc20Abi, address);
     const decimals = await contract.methods.decimals().call();
-    const balance = await contract.methods.balanceOf(owner).call();    
+    const balance = await contract.methods.balanceOf(owner).call();
+    const allowance = await contract.methods.allowance(owner, mumbaiQuickSwapRouterContract).call();
     const readableBalance = balance / 10 ** decimals;
 
     if (tokenSelection == 'from') {
         swapPair.from.address = address;
         swapPair.from.balance = readableBalance;
+        swapPair.from.allowance = allowance;
     } else if (tokenSelection == 'to') {
         swapPair.to.address = address;
         swapPair.to.balance = readableBalance;
+        swapPair.to.allowance = allowance;
     } else if (tokenSelection == 'liquidity_from') {
         liquidityPair.from.address = address;
         liquidityPair.from.balance = readableBalance;
+        liquidityPair.from.allowance = allowance;
     } else {
         liquidityPair.to.address = address;
         liquidityPair.to.balance = readableBalance;
+        liquidityPair.to.allowance = allowance;
     }
     updateUI();
 }
@@ -150,6 +155,7 @@ function updateUI() {
 
 function updateApprovalButtonForAddLiquidity() {
     const approvalBtn = $('#liquidity_approve_token');
+    approvalBtn.hide();
     if (liquidityPair.from.balance > 0 && liquidityPair.from.balance > liquidityPair.from.allowance) {
         approvalBtn.text('Approve ' + tokens[liquidityPair.from.address].symbol);
         approvalBtn.data('address', liquidityPair.from.address);
