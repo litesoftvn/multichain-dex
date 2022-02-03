@@ -764,8 +764,3 @@ export const routerAbi = [
     "type": "receive"
   }
 ];
-
-
-// export {
-//     routerAbi
-// }
