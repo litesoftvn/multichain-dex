@@ -6,6 +6,7 @@ let tokenSelection;
 let contract = null;
 let owner = null;
 let web3 = null;
+let slipPagePercentage = 3; // 3%
 const storage = window.localStorage;
 
 import { erc20Abi } from '../abis/erc20Abi.js';
@@ -116,26 +117,27 @@ async function selectToken(address) {
     const balance = await contract.methods.balanceOf(owner).call();
     const allowance = await contract.methods.allowance(owner, mumbaiQuickSwapRouterContract).call();
     const readableBalance = balance / 10 ** decimals;
+    const readableAllowance = allowance / 10 ** decimals;
 
     if (tokenSelection == 'from') {
         swapPair.from.address = address;
         swapPair.from.balance = readableBalance;
-        swapPair.from.allowance = allowance;
+        swapPair.from.allowance = readableAllowance;
         swapPair.from.decimals = decimals;
     } else if (tokenSelection == 'to') {
         swapPair.to.address = address;
         swapPair.to.balance = readableBalance;
-        swapPair.to.allowance = allowance;
+        swapPair.to.allowance = readableAllowance;
         swapPair.to.decimals = decimals;
     } else if (tokenSelection == 'liquidity_from') {
         liquidityPair.from.address = address;
         liquidityPair.from.balance = readableBalance;
-        liquidityPair.from.allowance = allowance;
+        liquidityPair.from.allowance = readableAllowance;
         liquidityPair.from.decimals = decimals;
     } else {
         liquidityPair.to.address = address;
         liquidityPair.to.balance = readableBalance;
-        liquidityPair.to.allowance = allowance;
+        liquidityPair.to.allowance = readableAllowance;
         liquidityPair.to.decimals = decimals;
     }
     updateUI();
@@ -146,12 +148,14 @@ function updateUI() {
         document.getElementById("from_token_icon").src = tokens[swapPair.from.address].logoURI;
         document.getElementById("from_token_text").innerHTML = tokens[swapPair.from.address].symbol;
         document.getElementById("from_token_amount").value = swapPair.from.swapBalance;
+        updateApprovalButtonForSwap();
     }
 
     if (!!swapPair.to.address) {
         document.getElementById("to_token_icon").src = tokens[swapPair.to.address].logoURI;
         document.getElementById("to_token_text").innerHTML = tokens[swapPair.to.address].symbol;
         document.getElementById("to_token_amount").value = swapPair.to.swapBalance;
+        updateApprovalButtonForSwap();
     }
 
     if (!!liquidityPair.from.address) {
@@ -177,6 +181,20 @@ function updateApprovalButtonForAddLiquidity() {
     } else if (liquidityPair.to.balance > 0 && liquidityPair.to.balance > liquidityPair.to.allowance) {
         approvalBtn.text('Approve ' + tokens[liquidityPair.to.address].symbol);
         approvalBtn.data('address', liquidityPair.to.address);
+        approvalBtn.show();
+    }
+}
+
+function updateApprovalButtonForSwap() {
+    const approvalBtn = $('#swap_approve_token');
+    approvalBtn.hide();
+    if (swapPair.from.balance > 0 && swapPair.from.balance > swapPair.from.allowance) {
+        approvalBtn.text('Approve ' + tokens[swapPair.from.address].symbol);
+        approvalBtn.data('address', swapPair.from.address);
+        approvalBtn.show();
+    } else if (swapPair.to.balance > 0 && swapPair.to.balance > swapPair.to.allowance) {
+        approvalBtn.text('Approve ' + tokens[swapPair.to.address].symbol);
+        approvalBtn.data('address', swapPair.to.address);
         approvalBtn.show();
     }
 }
@@ -218,11 +236,11 @@ async function getQuoteSwap(evt) {
     const result = await contract.methods.getAmountsOut(new web3.utils.BN(etherAmount), pair).call();
 
     if (id == 'from_token_amount') {
-        swapPair.from.swapBalance = web3.utils.fromWei(etherAmount, getEtherUnit(web3.utils.unitMap, swapPair.from.decimals));
-        swapPair.to.swapBalance = web3.utils.fromWei(result[1], getEtherUnit(web3.utils.unitMap, swapPair.to.decimals));
+        swapPair.from.swapBalance = parseFloat(web3.utils.fromWei(etherAmount, getEtherUnit(web3.utils.unitMap, swapPair.from.decimals))).toFixed(6);
+        swapPair.to.swapBalance = parseFloat(web3.utils.fromWei(result[1], getEtherUnit(web3.utils.unitMap, swapPair.to.decimals))).toFixed(6);
     } else {
-        swapPair.from.swapBalance = web3.utils.fromWei(result[1], getEtherUnit(web3.utils.unitMap, swapPair.from.decimals));
-        swapPair.to.swapBalance = web3.utils.fromWei(etherAmount, getEtherUnit(web3.utils.unitMap, swapPair.to.decimals));
+        swapPair.from.swapBalance = parseFloat(web3.utils.fromWei(result[1], getEtherUnit(web3.utils.unitMap, swapPair.from.decimals))).toFixed(6);
+        swapPair.to.swapBalance = parseFloat(web3.utils.fromWei(etherAmount, getEtherUnit(web3.utils.unitMap, swapPair.to.decimals))).toFixed(6);
     }
     updateUI();
 }
@@ -289,18 +307,18 @@ async function submitAddLiquidityEth() {
     await router.methods.addLiquidityETH('0xf45b409a2b978ec02Bb6084e6Acc42867a78Ee9c', '100000000000000000000000', '10', '1', owner, deadline).send(dataOption);
 }
 
-async function submitApproveToken() {
-    let address = $('#liquidity_approve_token').data('address');
+async function submitApproveToken(id) {
+    let address = $('#' + id).data('address');
     contract = new web3.eth.Contract(erc20Abi, address);
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
     const account = accounts[0];
 
     await contract.methods.approve(mumbaiQuickSwapRouterContract, web3.utils.toWei('10000000000000000000', 'ether')).send({ from: account });
-    $('#liquidity_approve_token').hide();
+    $('#' + id).hide();
 }
 
 async function submitSwap() {
-    if (swapPair.from.swapBalance == '') {
+    if (swapPair.from.swapBalance == '' || swapPair.to.swapBalance == '') {
         return;
     }
     const router = new web3.eth.Contract(routerAbi, mumbaiQuickSwapRouterContract);
@@ -309,19 +327,41 @@ async function submitSwap() {
     }
     const deadline = web3.utils.toHex(Math.round(Date.now() / 1000) + 60 * 20);
     const unitMap = web3.utils.unitMap;
-    await router.methods.swapExactTokensForTokens(
-        web3.utils.toWei(swapPair.from.swapBalance, getEtherUnit(unitMap, swapPair.from.decimals)),
-        '1',
-        [swapPair.from.address, swapPair.to.address],
-        owner,
-        deadline).send(dataOption);
+    
+    if (ethTokensAddresses.includes(swapPair.from.address)) {
+        // swap from eth to another token
+        dataOption.value = web3.utils.toWei(swapPair.from.swapBalance, getEtherUnit(unitMap, swapPair.from.decimals));
+        // take slip page into account
+        const swapBalance = (parseFloat(swapPair.to.swapBalance) / 100 * (100 - slipPagePercentage)).toFixed(6);
+        // swap
+        await router.methods.swapETHForExactTokens(
+            web3.utils.toWei(swapBalance, getEtherUnit(unitMap, swapPair.to.decimals)),
+            [swapPair.from.address, swapPair.to.address],
+            owner,
+            deadline).send(dataOption);
+    } else if (ethTokensAddresses.includes(swapPair.to.address)) {
+        // swap tokens for eth
+        // take slip page into account
+        const expectedEth = web3.utils.toWei((parseFloat(swapPair.to.swapBalance) / 100 * (100 - slipPagePercentage)).toFixed(6), getEtherUnit(unitMap, swapPair.to.decimals));
+        const amountInMax = web3.utils.toWei(swapPair.from.swapBalance, getEtherUnit(unitMap, swapPair.from.decimals));
+        await router.methods.swapTokensForExactETH(expectedEth, amountInMax, [swapPair.from.address, swapPair.to.address], owner, deadline).send(dataOption);
+    } else {
+        // Performs the swap from tokens to tokens
+        await router.methods.swapExactTokensForTokens(
+            web3.utils.toWei(swapPair.from.swapBalance, getEtherUnit(unitMap, swapPair.from.decimals)),
+            '1',
+            [swapPair.from.address, swapPair.to.address],
+            owner,
+            deadline).send(dataOption);
+    }
 }
 
 $(document).ready(() => {
     init();
     document.getElementById("from_token_select").onclick = (() => { openModal('from'); });
     document.getElementById("to_token_select").onclick = (() => { openModal('to'); });
-    document.getElementById("liquidity_approve_token").onclick = submitApproveToken;
+    document.getElementById("swap_approve_token").onclick = (() => { submitApproveToken('swap_approve_token'); });
+    document.getElementById("liquidity_approve_token").onclick = (() => { submitApproveToken('liquidity_approve_token'); });
     document.getElementById("submit_add_liquidity").onclick = submitAddLiquidity;
 
     document.getElementById("liquidity_from_token_select").onclick = (() => { openModal('liquidity_from'); });
